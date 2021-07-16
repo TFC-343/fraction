@@ -1,9 +1,18 @@
 from decimal import Decimal
 
+
 class fraction:
     def __init__(self, n, d):
-        self.n = n  # numerator
-        self.d = d  # denominator
+        """the fractions will be simplified after creating"""
+
+        negative = 1
+        if (n < 0) ^ (d < 0):
+            negative = -1
+        n, d = abs(n), abs(d)
+
+        hcf = fraction.__hcf(n, d)
+        self.n = n // hcf * negative
+        self.d = d // hcf
 
     def __str__(self):
         n = self.numerator()
@@ -13,14 +22,13 @@ class fraction:
 
     def __add__(self, other):
         """adding two fractions together"""
+        other = fraction.__clarify_fraction(other)
         n = self.n
         d = self.d
         n_ = other.n
         d_ = other.d
 
-        new_self = fraction(n*d_, d*d_)
-        new_other = fraction(d*n_, d_*n_)
-        result = fraction(new_self.n + new_other.n, new_self.d)
+        result = fraction(n*d_ + n_*d, d*d_)
         return result
 
     def __sub__(self, other):
@@ -28,8 +36,8 @@ class fraction:
         return self + (other*-1)
 
     def __mul__(self, other):
-        if isinstance(other, int):
-            other = fraction(other, 1)
+        """multiplying fraction by fraction, int or float"""
+        other = fraction.__clarify_fraction(other)
         n = self.n
         d = self.d
         n_ = other.n
@@ -40,13 +48,13 @@ class fraction:
         return self.__mul__(other)
 
     def __truediv__(self, other):
-        if isinstance(other, int):
-            other = fraction(other, 1)
+        """divides self by other"""
+        other = fraction.__clarify_fraction(other)
         return self * ~other
 
     def __rtruediv__(self, other):
-        if isinstance(other, int):
-            other = fraction(other, 1)
+        """divids other by self"""
+        other = fraction.__clarify_fraction(other)
         return other * ~self
 
     def __pow__(self, power):
@@ -66,8 +74,6 @@ class fraction:
 
     def __and__(self, other):
         """naive addition of fractions"""
-        if isinstance(other, int):
-            other = fraction(other, 1)
         n = self.n
         d = self.d
         n_ = other.n
@@ -75,7 +81,7 @@ class fraction:
         return fraction(n+n_, d+d_)
 
     def __abs__(self):
-        """returns float value of fraction"""
+        """returns Decimal value of fraction"""
         return self.get_true_value()
 
     def __invert__(self):
@@ -87,82 +93,17 @@ class fraction:
 
     def numerator(self):
         """returns the numerator of a fraction"""
-        return self.simplify(r=True).n
+        return self.n
 
     def denominator(self):
         """returns the denominator of a fraction"""
-        return self.simplify(r=True).d
+        return self.d
 
     def get_true_value(self):
-        """return true value in float"""
+        """return true value in Decimal"""
         n = self.n
         d = self.d
         return Decimal(n) / Decimal(d)
-
-    def simplify(self, r=False):
-        """simplifies the equation"""
-        n = self.n
-        d = self.d
-
-        negative = 1
-        if (n < 0) ^ (d < 0):
-            negative = -1
-        n, d = abs(n), abs(d)
-
-        hcf = fraction.__hcf(n, d)
-        if r:
-            return fraction(n // hcf * negative, d // hcf)
-        self.n = n // hcf * negative
-        self.d = d // hcf
-
-    @staticmethod
-    def __hcf(a, b):
-        """returns highest common factor, private method"""
-        rt = 1
-        i = 1
-        c = a if a < b else b
-        jump = 2
-        while i < c:
-            # i need only be a prime number
-            # finding prime numbers is very inefficient so we check numbers either side of multiples of 6
-            # as that is the only place a prime number occurs
-            if i < 5:
-                i += 1
-            elif jump == 2:
-                i += jump
-                jump = 4
-            elif jump == 4:
-                i += jump
-                jump = 2
-
-            if a % i == 0 and b % i == 0:
-                a = a // i
-                b = b // i
-                rt *= i
-                i = 1
-        return rt
-
-    @staticmethod
-    def __lcm(a, b):  # inefficient but unused
-        """returns lowest common multiple, private method"""
-        rt = 1
-        i = 1
-        while not(a == 1 and b == 1):
-            i += 1
-            if a % i == 0 and b % i == 0:
-                a = a // i
-                b = b // i
-                rt *= i
-                i = 1
-            elif a % i == 0:
-                a = a // i
-                rt *= i
-                i = 1
-            elif b % i == 0:
-                b = b // i
-                rt *= i
-                i = 1
-        return rt
 
     @staticmethod
     def estimate_fraction(num):
@@ -182,3 +123,40 @@ class fraction:
                 mid = bot & mid
         mid.n = mid.n + integer*mid.d  # multiplies integer back into the estimation
         return mid
+
+    @staticmethod
+    def __hcf(a, b):
+        """returns highest common factor, private method"""
+        rt = 1
+        i = 1
+        c = a if a < b else b
+        jump = 2
+        while i < c:
+            # i only has to be prime number
+            # finding prime numbers is very inefficient so we check numbers either side of multiples of 6
+            # as that is the only place a prime number occurs
+            if i < 5:
+                i += 1
+            elif jump == 2:
+                i += jump
+                jump = 4
+            elif jump == 4:
+                i += jump
+                jump = 2
+
+            if a % i == 0 and b % i == 0:
+                a = a // i
+                b = b // i
+                rt *= i
+                i = 1
+        return rt
+
+    @staticmethod
+    def __clarify_fraction(value):
+        """returns a fractional value of an int of a float, private method"""
+        if isinstance(value, int):
+            return fraction(value, 1)
+        if isinstance(value, float):
+            return fraction.estimate_fraction(value)
+        if isinstance(value, fraction):
+            return value
