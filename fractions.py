@@ -114,7 +114,7 @@ class fraction:
         bot = fraction(0, 1)  # the lowest number dec could be
         top = fraction(1, 1)  # the highest number dec could be
         mid = bot & top  # mid is the naive addition of bot and top
-        while mid.get_true_value() != dec:  # while mid is not a good estimation of dec
+        while round(mid.get_true_value(), 11) != round(dec, 11):  # while mid is not a good estimation of dec
             if mid.get_true_value() < dec:  # if mid is smaller than dec, increase size
                 bot = mid
                 mid = mid & top
