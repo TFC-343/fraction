@@ -5,14 +5,21 @@ class fraction:
     def __init__(self, n, d):
         """the fractions will be simplified after creating"""
 
-        negative = 1
-        if (n < 0) ^ (d < 0):
-            negative = -1
-        n, d = abs(n), abs(d)
+        if d == 0:
+            text = "cannot create fraction with a denominator of zero (cannot divide by zero)"
+            raise ZeroDivisionError(text)
 
-        hcf = fraction.__hcf(n, d)
-        self.n = n // hcf * negative
-        self.d = d // hcf
+        if n == 0:
+            self.n = 0
+            self.d = 1
+        else:
+            negative = 1
+            if (n < 0) ^ (d < 0):
+                negative = -1
+            n, d = abs(n), abs(d)
+            hcf = fraction.__hcf(n, d)
+            self.n = n // hcf * negative
+            self.d = d // hcf
 
     def __str__(self):
         n = self.numerator()
