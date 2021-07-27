@@ -1,10 +1,19 @@
 from decimal import Decimal
+from math import gcd
 
 
 class fraction:
     def __init__(self, n, d):
         """the fractions will be simplified after creating"""
 
+        # if any of the terms are fractions or floats the code will simplify
+        if isinstance(n, fraction) or isinstance(d, fraction) or isinstance(n, float) or isinstance(d, float):
+            n = fraction.__clarify_fraction(n)
+            d = fraction.__clarify_fraction(d)
+            new_fraction = n / d
+            n, d = new_fraction.n, new_fraction.d
+
+        # if the denominator is zero the raise error
         if d == 0:
             text = "cannot create fraction with a denominator of zero (cannot divide by zero)"
             raise ZeroDivisionError(text)
@@ -17,7 +26,7 @@ class fraction:
             if (n < 0) ^ (d < 0):
                 negative = -1
             n, d = abs(n), abs(d)
-            hcf = fraction.__hcf(n, d)
+            hcf = gcd(n, d)
             self.n = n // hcf * negative
             self.d = d // hcf
 
@@ -32,6 +41,10 @@ class fraction:
 
     def __float__(self):
         return float(self.get_decimal_value())
+
+    def __bool__(self):
+        """only returns false if value is zero"""
+        return False if self == 0 else True
 
     def __add__(self, other):
         """adding two fractions together"""
@@ -76,6 +89,18 @@ class fraction:
         other = fraction.__clarify_fraction(other)
         return other * ~self
 
+    def __floordiv__(self, other):
+        return int(self / other)
+
+    def __rfloordiv__(self, other):
+        return int(other / self)
+
+    def __mod__(self, other):
+        return self - (other * (self // other))
+
+    def __rmod__(self, other):
+        return other - (self * (other // self))
+
     def __pow__(self, power):
         if isinstance(power, int):
             def exp_by_sqr(x, p):
@@ -102,6 +127,10 @@ class fraction:
     def __abs__(self):
         """returns Decimal value of fraction"""
         return self.get_decimal_value()
+
+    def __round__(self, n=None):
+        """rounds the decimal value"""
+        return round(self.get_decimal_value(), n)
 
     def __pos__(self):
         return self
@@ -157,16 +186,10 @@ class fraction:
         return self.d
 
     def get_decimal_value(self):
-        """return true value in Decimal"""
+        """return value in Decimal"""
         n = self.n
         d = self.d
         return Decimal(n) / Decimal(d)
-
-    def is_one(self):
-        """returns true if the fraction is equal to one"""
-        if self.n == self.d:
-            return True
-        return False
 
     def is_int(self):
         """returns true if the fraction could be writen as a int"""
@@ -192,33 +215,6 @@ class fraction:
                 mid = bot & mid
         mid.n = mid.n + integer*mid.d  # multiplies integer back into the estimation
         return mid
-
-    @staticmethod
-    def __hcf(a, b):
-        """returns highest common factor, private method"""
-        rt = 1
-        i = 1
-        c = a if a < b else b
-        jump = 2
-        while i < c:
-            # i only has to be prime number
-            # finding prime numbers is very inefficient so we check numbers either side of multiples of 6
-            # as that is the only place a prime number occurs
-            if i < 5:
-                i += 1
-            elif jump == 2:
-                i += jump
-                jump = 4
-            elif jump == 4:
-                i += jump
-                jump = 2
-
-            if a % i == 0 and b % i == 0:
-                a = a // i
-                b = b // i
-                rt *= i
-                i = 1
-        return rt
 
     @staticmethod
     def __clarify_fraction(value):
