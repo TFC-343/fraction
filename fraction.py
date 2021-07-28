@@ -8,7 +8,7 @@ class fraction:
         pass
 
     def __init__(self, n, d=1):
-        """the fractions will be simplified after creating"""
+        """the fractions will be simplified after initialisation"""
 
         # if any of the terms are fractions or floats the code will simplify
         if isinstance(n, fraction) or isinstance(d, fraction) or isinstance(n, float) or isinstance(d, float):
@@ -22,44 +22,40 @@ class fraction:
             text = "cannot create fraction with a denominator of zero (cannot divide by zero)"
             raise ZeroDivisionError(text)
 
-        if n == 0:
+        if n == 0:  # is the numerator is zero, simplify to 0/1
             self.n = 0
             self.d = 1
         else:
             negative = 1
-            if (n < 0) ^ (d < 0):
-                negative = -1
+            if (n < 0) ^ (d < 0):  # if there is one negative across the attributes
+                negative = -1  # saves if the result needs to be negative
             n, d = abs(n), abs(d)
-            hcf = gcd(n, d)
-            self.n = n // hcf * negative
+            hcf = gcd(n, d)  # highest common factor = greatest common denominator
+            self.n = n // hcf * negative  # divides both attributes by hcf and adds the negative if needed
             self.d = d // hcf
 
-    # def __getattribute__(self, item):
-    #     x = inspect.currentframe()
-    #     x = inspect.getouterframes(x, 2)
-    #     if (x[1][3] not in methods) and (item == 'n' or item == 'd'):
-    #         text = "use self.numerator() or self.denominator() when accessing attribute from outer scope"
-    #         raise self.PrivateAttribute(text)
-    #     return super(fraction, self).__getattribute__(item)
-
     def __setattr__(self, key, value):
+        """checks if call is coming from outer scope and returns an error if it is"""
         x = inspect.currentframe()
         x = inspect.getouterframes(x, 2)
-        if x[1][3] not in self.__dir__():
+        if x[1][3] not in self.__dir__():  # if the call is not coming from a defined method, then raise error
             text = "don't change attributes from outer scope"
             raise self.PrivateAttribute(text)
         self.__dict__[key] = value
 
     def __str__(self):
+        """casting to string"""
         n = self.numerator()
         d = self.denominator()
 
         return f"{n}/{d}"
 
     def __int__(self):
+        """casting to int (rounding down)"""
         return int(self.get_decimal_value())
 
     def __float__(self):
+        """casting to float"""
         return float(self.get_decimal_value())
 
     def __bool__(self):
@@ -78,6 +74,7 @@ class fraction:
         return result
 
     def __radd__(self, other):
+        """refer to __add__"""
         return fraction.__add__(self, other)
 
     def __sub__(self, other):
@@ -85,6 +82,7 @@ class fraction:
         return self + (other*-1)
 
     def __rsub__(self, other):
+        """refer to __sub__"""
         return other + (self*-1)
 
     def __mul__(self, other):
@@ -97,6 +95,7 @@ class fraction:
         return fraction(n*n_, d*d_)
 
     def __rmul__(self, other):
+        """refer to __mul__"""
         return self.__mul__(other)
 
     def __truediv__(self, other):
@@ -110,19 +109,22 @@ class fraction:
         return other * ~self
 
     def __floordiv__(self, other):
+        """returns a rounded down version of self / other"""
         return int(self / other)
 
     def __rfloordiv__(self, other):
         return int(other / self)
 
     def __mod__(self, other):
+        """returns the remainder of self // other"""
         return self - (other * (self // other))
 
     def __rmod__(self, other):
         return other - (self * (other // self))
 
     def __pow__(self, power):
-        if isinstance(power, int):
+        """a fraction to the power of an int"""
+        if isinstance(power, int):  # exponential by squaring
             def exp_by_sqr(x, p):
                 if p == -1:
                     return ~x
@@ -153,6 +155,7 @@ class fraction:
         return round(self.get_decimal_value(), n)
 
     def __pos__(self):
+        """does nothing"""
         return self
 
     def __neg__(self):
@@ -160,11 +163,11 @@ class fraction:
         return self * -1
 
     def __invert__(self):
-        """equivalent to 1/'self'"""
+        """equivalent to 1/self"""
         n = self.n
         d = self.d
 
-        return fraction(d, n)
+        return fraction(d, n)  # flips numerator and denominator
 
     def __eq__(self, other):
         """returns true is fractions are equal"""
