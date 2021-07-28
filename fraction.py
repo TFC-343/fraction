@@ -1,9 +1,13 @@
 from decimal import Decimal
 from math import gcd
+import inspect
 
 
 class fraction:
-    def __init__(self, n, d):
+    class PrivateAttribute(Exception):
+        pass
+
+    def __init__(self, n, d=1):
         """the fractions will be simplified after creating"""
 
         # if any of the terms are fractions or floats the code will simplify
@@ -29,6 +33,22 @@ class fraction:
             hcf = gcd(n, d)
             self.n = n // hcf * negative
             self.d = d // hcf
+
+    # def __getattribute__(self, item):
+    #     x = inspect.currentframe()
+    #     x = inspect.getouterframes(x, 2)
+    #     if (x[1][3] not in methods) and (item == 'n' or item == 'd'):
+    #         text = "use self.numerator() or self.denominator() when accessing attribute from outer scope"
+    #         raise self.PrivateAttribute(text)
+    #     return super(fraction, self).__getattribute__(item)
+
+    def __setattr__(self, key, value):
+        x = inspect.currentframe()
+        x = inspect.getouterframes(x, 2)
+        if x[1][3] not in self.__dir__():
+            text = "don't change attributes from outer scope"
+            raise self.PrivateAttribute(text)
+        self.__dict__[key] = value
 
     def __str__(self):
         n = self.numerator()
@@ -185,6 +205,16 @@ class fraction:
         """returns the denominator of a fraction"""
         return self.d
 
+    def get_continued_fraction(self):
+        """returns the integers of a continued fraction"""
+        n = self.n
+        d = self.d
+
+        if d == 1:
+            return tuple([n])
+        else:
+            return (n // d, *(fraction(d, n % d).get_continued_fraction()))
+
     def get_decimal_value(self):
         """return value in Decimal"""
         n = self.n
@@ -201,7 +231,7 @@ class fraction:
     def estimate_fraction(num):
         """returns a fraction estimation of num"""
         num = Decimal(repr(num))  # set num to 'Decimal' type
-        integer = num // 1  # integer is the whole number part of num
+        integer = int(num // 1)  # integer is the whole number part of num
         dec = num % 1  # num is the decimal part of num
         bot = fraction(0, 1)  # the lowest number dec could be
         top = fraction(1, 1)  # the highest number dec could be
