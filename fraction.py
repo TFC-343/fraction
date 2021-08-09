@@ -15,7 +15,7 @@ class fraction:
             n = fraction.__clarify_fraction(n)
             d = fraction.__clarify_fraction(d)
             new_fraction = n / d
-            n, d = new_fraction.n, new_fraction.d
+            n, d = new_fraction.numerator, new_fraction.denominator
 
         # if the denominator is zero the raise error
         if d == 0:
@@ -23,16 +23,16 @@ class fraction:
             raise ZeroDivisionError(text)
 
         if n == 0:  # is the numerator is zero, simplify to 0/1
-            self.n = 0
-            self.d = 1
+            self.numerator = 0
+            self.denominator = 1
         else:
             negative = 1
             if (n < 0) ^ (d < 0):  # if there is one negative across the attributes
                 negative = -1  # saves if the result needs to be negative
             n, d = abs(n), abs(d)
             hcf = gcd(n, d)  # highest common factor = greatest common denominator
-            self.n = n // hcf * negative  # divides both attributes by hcf and adds the negative if needed
-            self.d = d // hcf
+            self.numerator = n // hcf * negative  # divides both attributes by hcf and adds the negative if needed
+            self.denominator = d // hcf
 
     def __setattr__(self, key, value):
         """checks if call is coming from outer scope and returns an error if it is"""
@@ -45,8 +45,8 @@ class fraction:
 
     def __str__(self):
         """casting to string"""
-        n = self.numerator()
-        d = self.denominator()
+        n = self.numerator
+        d = self.denominator
 
         return f"{n}/{d}"
 
@@ -65,10 +65,10 @@ class fraction:
     def __add__(self, other):
         """adding two fractions together"""
         other = fraction.__clarify_fraction(other)
-        n = self.n
-        d = self.d
-        n_ = other.n
-        d_ = other.d
+        n = self.numerator
+        d = self.denominator
+        n_ = other.numerator
+        d_ = other.denominator
 
         result = fraction(n*d_ + n_*d, d*d_)
         return result
@@ -88,10 +88,10 @@ class fraction:
     def __mul__(self, other):
         """multiplying fraction by fraction, int or float"""
         other = fraction.__clarify_fraction(other)
-        n = self.n
-        d = self.d
-        n_ = other.n
-        d_ = other.d
+        n = self.numerator
+        d = self.denominator
+        n_ = other.numerator
+        d_ = other.denominator
         return fraction(n*n_, d*d_)
 
     def __rmul__(self, other):
@@ -140,10 +140,10 @@ class fraction:
 
     def __and__(self, other):
         """naive addition of fractions"""
-        n = self.n
-        d = self.d
-        n_ = other.n
-        d_ = other.d
+        n = self.numerator
+        d = self.denominator
+        n_ = other.numerator
+        d_ = other.denominator
         return fraction(n+n_, d+d_)
 
     def __abs__(self):
@@ -164,15 +164,15 @@ class fraction:
 
     def __invert__(self):
         """equivalent to 1/self"""
-        n = self.n
-        d = self.d
+        n = self.numerator
+        d = self.denominator
 
         return fraction(d, n)  # flips numerator and denominator
 
     def __eq__(self, other):
         """returns true is fractions are equal"""
         other = fraction.__clarify_fraction(other)
-        if self.n == other.n and self.d == other.d:
+        if self.numerator == other.numerator and self.denominator == other.denominator:
             return True
         return False
 
@@ -180,7 +180,7 @@ class fraction:
         """returns true if first fraction is greater than the second value"""
         self_ = fraction.__clarify_fraction(self)
         other = fraction.__clarify_fraction(other)
-        if self_.n * other.d > self_.d * other.n:
+        if self_.numerator * other.denominator > self_.denominator * other.numerator:
             return True
         return False
 
@@ -192,7 +192,7 @@ class fraction:
         """returns true if first fraction is greater than or equal to the second value"""
         self_ = fraction.__clarify_fraction(self)
         other = fraction.__clarify_fraction(other)
-        if (self_.n == other.n and self_.d == other.d) or (self_.n * other.d > self_.d * other.n):
+        if (self_.numerator == other.numerator and self_.denominator == other.denominator) or (self_.numerator * other.denominator > self_.denominator * other.numerator):
             return True
         return False
 
@@ -200,18 +200,10 @@ class fraction:
         """returns true if first fraction is less than or equal to the second value"""
         return fraction.__ge__(other, self)  # calls greater than and passes vars in reverse order
 
-    def numerator(self):
-        """returns the numerator of a fraction"""
-        return self.n
-
-    def denominator(self):
-        """returns the denominator of a fraction"""
-        return self.d
-
     def get_continued_fraction(self):
         """returns the integers of a continued fraction"""
-        n = self.n
-        d = self.d
+        n = self.numerator
+        d = self.denominator
 
         if d == 1:
             return tuple([n])
@@ -220,20 +212,20 @@ class fraction:
 
     def get_decimal_value(self):
         """return value in Decimal"""
-        n = self.n
-        d = self.d
+        n = self.numerator
+        d = self.denominator
         return Decimal(n) / Decimal(d)
 
     def is_int(self):
         """returns true if the fraction could be writen as a int"""
-        if self.d == 1:
+        if self.denominator == 1:
             return True
         return False
 
     def does_terminate(self):
         """returns true if the decimal expansion terminates"""
         flag = True
-        for i in fraction.__get_prime_factors(self.d):
+        for i in fraction.__get_prime_factors(self.denominator):
             if i != 2 and i != 5:
                 flag = False
 
@@ -257,7 +249,7 @@ class fraction:
             elif mid.get_decimal_value() > dec:  # if mid is larger than dec, decrease size
                 top = mid
                 mid = bot & mid
-        mid.n = mid.n + integer*mid.d  # multiplies integer back into the estimation
+        mid.numerator = mid.numerator + integer * mid.denominator  # multiplies integer back into the estimation
         return mid
 
     @staticmethod
@@ -282,5 +274,3 @@ class fraction:
             return fraction.estimate_fraction(value)
         if isinstance(value, fraction):
             return value
-
-
