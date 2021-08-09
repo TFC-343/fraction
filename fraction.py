@@ -230,12 +230,23 @@ class fraction:
             return True
         return False
 
+    def does_terminate(self):
+        """returns true if the decimal expansion terminates"""
+        flag = True
+        for i in fraction.__get_prime_factors(self.d):
+            if i != 2 and i != 5:
+                flag = False
+
+        return flag
+
     @staticmethod
     def estimate_fraction(num):
         """returns a fraction estimation of num"""
         num = Decimal(repr(num))  # set num to 'Decimal' type
         integer = int(num // 1)  # integer is the whole number part of num
         dec = num % 1  # num is the decimal part of num
+        if dec == 0:  # if dec is zero then fraction has a denominator of 1
+            return fraction(integer, 1)
         bot = fraction(0, 1)  # the lowest number dec could be
         top = fraction(1, 1)  # the highest number dec could be
         mid = bot & top  # mid is the naive addition of bot and top
@@ -250,6 +261,19 @@ class fraction:
         return mid
 
     @staticmethod
+    def __get_prime_factors(num):
+        primes = []
+        i = 2
+        while i <= num:
+            if num % i == 0:
+                num = num // i
+                primes.append(i)
+                i = 2
+            else:
+                i += 1
+        return tuple(primes)
+
+    @staticmethod
     def __clarify_fraction(value):
         """returns a fractional value of an int of a float, private method"""
         if isinstance(value, int):
@@ -258,3 +282,5 @@ class fraction:
             return fraction.estimate_fraction(value)
         if isinstance(value, fraction):
             return value
+
+
