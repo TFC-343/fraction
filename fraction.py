@@ -1,21 +1,65 @@
+import inspect
 from decimal import Decimal
 from math import gcd
-import inspect
+from typing import Any, Callable, TypeVar
+
+
+def staticmethod(func):
+    def inner(*args):
+        return func(*args)
+
+    return inner
 
 
 class fraction:
+    F = TypeVar('F', bound=Callable[..., Any])
+
     class PrivateAttribute(Exception):
         pass
+
+    @staticmethod
+    def __clarify_args(func: F):
+        """decorator to make all args in a function fraction type"""
+
+        def inner(*args):
+            args = list(args)
+            for i in range(len(args)):
+                if isinstance(args[i], int):
+                    args[i] = fraction(i, 1)
+                if isinstance(args[i], float):
+                    args[i] = fraction.estimate_fraction(args[i])
+            return func(*tuple(args))
+
+        return inner
 
     def __init__(self, n, d=1):
         """the fractions will be simplified after initialisation"""
 
-        # if any of the terms are fractions or floats the code will simplify
-        if isinstance(n, fraction) or isinstance(d, fraction) or isinstance(n, float) or isinstance(d, float):
-            n = fraction.__clarify_fraction(n)
-            d = fraction.__clarify_fraction(d)
-            new_fraction = n / d
-            n, d = new_fraction.numerator, new_fraction.denominator
+        # fixes string parts
+        if isinstance(n, str):
+            if n.isdigit():
+                n = int(n)
+            elif n.replace('.', '', 1).isdigit():
+                n = float(n)
+        if isinstance(d, str):
+            if d.isdigit():
+                d = int(d)
+            elif d.replace('.', '', 1).isdigit():
+                d = float(d)
+
+        # fixes float parts
+        if isinstance(n, float):
+            n = fraction.estimate_fraction(n)
+        if isinstance(d, float):
+            d = fraction.estimate_fraction(d)
+
+        # fixes fraction parts
+        if isinstance(n, fraction):
+            d = d * n.denominator
+            n = n.numerator
+        if isinstance(d, fraction):
+            n = n * d.denominator
+            d = d.numerator
 
         # if the denominator is zero the raise error
         if d == 0:
@@ -26,12 +70,13 @@ class fraction:
             self.numerator = 0
             self.denominator = 1
         else:
-            negative = 1
-            if (n < 0) ^ (d < 0):  # if there is one negative across the attributes
-                negative = -1  # saves if the result needs to be negative
-            n, d = abs(n), abs(d)
+
+            if d < 0:  # if denominator is negative -> simplify
+                n *= -1
+                d *= -1
+
             hcf = gcd(n, d)  # highest common factor = greatest common denominator
-            self.numerator = n // hcf * negative  # divides both attributes by hcf and adds the negative if needed
+            self.numerator = n // hcf  # divides both attributes by hcf
             self.denominator = d // hcf
 
     def __setattr__(self, key, value):
@@ -62,15 +107,15 @@ class fraction:
         """only returns false if value is zero"""
         return False if self == 0 else True
 
+    @__clarify_args
     def __add__(self, other):
         """adding two fractions together"""
-        other = fraction.__clarify_fraction(other)
         n = self.numerator
         d = self.denominator
         n_ = other.numerator
         d_ = other.denominator
 
-        result = fraction(n*d_ + n_*d, d*d_)
+        result = fraction(n * d_ + n_ * d, d * d_)
         return result
 
     def __radd__(self, other):
@@ -79,33 +124,29 @@ class fraction:
 
     def __sub__(self, other):
         """subtracting two fractions from each other"""
-        return self + (other*-1)
+        return self + (other * -1)
 
     def __rsub__(self, other):
         """refer to __sub__"""
-        return other + (self*-1)
+        return other + (self * -1)
 
+    @__clarify_args
     def __mul__(self, other):
         """multiplying fraction by fraction, int or float"""
-        other = fraction.__clarify_fraction(other)
-        n = self.numerator
-        d = self.denominator
-        n_ = other.numerator
-        d_ = other.denominator
-        return fraction(n*n_, d*d_)
+        return fraction(self.numerator * other.numerator, self.denominator * other.denominator)
 
     def __rmul__(self, other):
         """refer to __mul__"""
         return self.__mul__(other)
 
+    @__clarify_args
     def __truediv__(self, other):
         """divides self by other"""
-        other = fraction.__clarify_fraction(other)
         return self * ~other
 
+    @__clarify_args
     def __rtruediv__(self, other):
         """divides other by self"""
-        other = fraction.__clarify_fraction(other)
         return other * ~self
 
     def __floordiv__(self, other):
@@ -124,27 +165,25 @@ class fraction:
 
     def __pow__(self, power):
         """a fraction to the power of an int"""
-        if isinstance(power, int):  # exponential by squaring
-            def exp_by_sqr(x, p):
-                if p == -1:
-                    return ~x
-                elif p == 0:
-                    return fraction(1, 1)
-                elif p == 1:
-                    return x
-                elif p % 2 == 0:
-                    return exp_by_sqr(x * x, p // 2)
-                elif p % 2 != 0:
-                    return x * exp_by_sqr(x * x, (p - 1) // 2)
-            return exp_by_sqr(self, power)
+
+        # exponential by squaring
+        def exp_by_sqr(x, p):
+            if p == -1:
+                return ~x
+            elif p == 0:
+                return fraction(1, 1)
+            elif p == 1:
+                return x
+            elif p % 2 == 0:
+                return exp_by_sqr(x * x, p // 2)
+            elif p % 2 != 0:
+                return x * exp_by_sqr(x * x, (p - 1) // 2)
+
+        return exp_by_sqr(self, power)
 
     def __and__(self, other):
         """naive addition of fractions"""
-        n = self.numerator
-        d = self.denominator
-        n_ = other.numerator
-        d_ = other.denominator
-        return fraction(n+n_, d+d_)
+        return fraction(self.numerator + other.numerator, self.denominator + other.denominator)
 
     def __abs__(self):
         """returns Decimal value of fraction"""
@@ -169,36 +208,38 @@ class fraction:
 
         return fraction(d, n)  # flips numerator and denominator
 
+    @__clarify_args
     def __eq__(self, other):
         """returns true is fractions are equal"""
-        other = fraction.__clarify_fraction(other)
         if self.numerator == other.numerator and self.denominator == other.denominator:
             return True
         return False
 
+    @__clarify_args
     def __gt__(self, other):
         """returns true if first fraction is greater than the second value"""
-        self_ = fraction.__clarify_fraction(self)
-        other = fraction.__clarify_fraction(other)
-        if self_.numerator * other.denominator > self_.denominator * other.numerator:
+        if self.numerator * other.denominator > self.denominator * other.numerator:
             return True
         return False
 
     def __lt__(self, other):
         """returns true if first fraction is less than the second value"""
-        return fraction.__gt__(other, self)  # calls greater than and passes vars in reverse order
+        return other > self  # calls greater than and passes vars in reverse order
 
+    @__clarify_args
     def __ge__(self, other):
         """returns true if first fraction is greater than or equal to the second value"""
-        self_ = fraction.__clarify_fraction(self)
-        other = fraction.__clarify_fraction(other)
-        if (self_.numerator == other.numerator and self_.denominator == other.denominator) or (self_.numerator * other.denominator > self_.denominator * other.numerator):
+        n = self.numerator
+        d = self.denominator
+        n_ = other.numerator
+        d_ = other.denominator
+        if (n == n_ and d == d_) or (n * d_ > d * n_):
             return True
         return False
 
     def __le__(self, other):
         """returns true if first fraction is less than or equal to the second value"""
-        return fraction.__ge__(other, self)  # calls greater than and passes vars in reverse order
+        return other >= self  # calls greater than and passes vars in reverse order
 
     def get_continued_fraction(self):
         """returns the integers of a continued fraction"""
@@ -253,7 +294,8 @@ class fraction:
         return mid
 
     @staticmethod
-    def __get_prime_factors(num):
+    def __get_prime_factors(num: int):
+        """returns the prime factors of num"""
         primes = []
         i = 2
         while i <= num:
@@ -265,12 +307,117 @@ class fraction:
                 i += 1
         return tuple(primes)
 
+
+class cfraction:
+    F = TypeVar('F', bound=Callable[..., Any])
+
     @staticmethod
-    def __clarify_fraction(value):
-        """returns a fractional value of an int of a float, private method"""
-        if isinstance(value, int):
-            return fraction(value, 1)
-        if isinstance(value, float):
-            return fraction.estimate_fraction(value)
-        if isinstance(value, fraction):
-            return value
+    def __clarify_args(func: F):
+        """decorator to make all args in a function cfraction type"""
+
+        def inner(*args):
+            args = list(args)
+            for i in range(len(args)):
+                j = args[i]
+                if isinstance(j, complex):
+                    args[i] = cfraction(j, 1)
+                if isinstance(j, int):
+                    args[i] = cfraction(complex(j, 0), 1)
+                if isinstance(j, fraction):
+                    args[i] = cfraction(j.numerator, j.denominator)
+
+            return func(*tuple(args))
+
+        return inner
+
+    def __init__(self, n, d):
+        n = complex(n)
+        d = complex(d)
+
+        # multiples both parts of fraction by conjugate of denominator to nullify imaginary part of denominator
+        n = n * d.conjugate()
+        d = int((d * d.conjugate()).real)
+
+        hcf = gcd(gcd(int(n.real), int(n.imag)), d)  # gets hcf of all numbers
+
+        n = complex(n.real // hcf, n.imag // hcf)
+        d //= hcf
+
+        if d < 0:  # if denominator is negative -> simplify
+            n *= -1
+            d *= -1
+
+        self.numerator = n
+        self.denominator = d
+
+    @property
+    def real(self):
+        """the real part of the fraction"""
+        return fraction(self.numerator.real, self.denominator)
+
+    @property
+    def imag(self):
+        """the imaginary part of the fraction"""
+        return fraction(self.numerator.imag, self.denominator)
+
+    def __str__(self):
+        return f"{self.numerator}/{self.denominator}"
+
+    def __bool__(self):
+        return not self == 0
+
+    @__clarify_args
+    def __add__(self, other):
+        """adding two fractions together"""
+        n = self.numerator
+        d = self.denominator
+        n_ = other.numerator
+        d_ = other.denominator
+
+        result = cfraction(n * d_ + n_ * d, d * d_)
+        return result
+
+    def __sub__(self, other):
+        return self + other * -1
+
+    @__clarify_args
+    def __mul__(self, other):
+        return cfraction(self.numerator * other.numerator, self.denominator * other.denominator)
+
+    def __pow__(self, power):  # TODO add exp by sqr
+        return cfraction(self.numerator ** power, self.denominator ** power)
+
+    def __truediv__(self, other):
+        return self * ~other
+
+    def __radd__(self, other):
+        return self + other
+
+    def __rsub__(self, other):
+        return other + self * -1
+
+    def __rmul__(self, other):
+        return self * other
+
+    def __rtruediv__(self, other):
+        return other * ~self
+
+    def __and__(self, other):
+        return cfraction(self.numerator + other.numerator, self.denominator + other.denominator)
+
+    def __pos__(self):
+        return self
+
+    def __neg__(self):
+        return self * -1
+
+    def __invert__(self):
+        return cfraction(self.denominator, self.numerator)
+
+    @__clarify_args
+    def __eq__(self, other):
+        return complex(self.numerator.real * other.denominator, self.numerator.imag * other.denominator) == \
+               complex(self.denominator * other.numerator.real, self.denominator * other.numerator.imag)
+
+    def get_complex_value(self):
+        return complex(float(self.real.get_decimal_value()), float(self.imag.get_decimal_value()))
